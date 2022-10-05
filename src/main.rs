@@ -55,7 +55,7 @@ fn main()
         .unwrap();
     audio.set_volume(volume);
     drop(volume);
-    
+
     audio.play();
     println!(
         "Playing '{}' at {}% volume",
@@ -64,36 +64,10 @@ fn main()
     );
     audio.sleep_until_end();
 
-    // beep1.set_volume(0.2);
-    // println!("Started beep1");
-
-    // thread::sleep(Duration::from_millis(1500));
-
-    // let file = std::fs::File::open("assets/beep2.wav").unwrap();
-    // let beep2 = stream_handle.play_once(BufReader::new(file)).unwrap();
-    // beep2.set_volume(0.3);
-    // beep2.detach();
-    // println!("Started beep2");
-
-    // thread::sleep(Duration::from_millis(1500));
-    // let file = std::fs::File::open("assets/beep3.ogg").unwrap();
-    // let beep3 = stream_handle.play_once(file).unwrap();
-    // beep3.set_volume(0.2);
-    // println!("Started beep3");
-
-    // thread::sleep(Duration::from_millis(1500));
-    // drop(beep1);
-    // println!("Stopped beep1");
-
-    // thread::sleep(Duration::from_millis(1500));
-    // drop(beep3);
-    // println!("Stopped beep3");
-
-    // thread::sleep(Duration::from_millis(1500));
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "num.rs")]
+#[structopt(name = "plsplay")]
 struct Opt
 {
     /// The audio file to play
@@ -101,7 +75,7 @@ struct Opt
     file: PathBuf,
 
     /// The playback volume (from 0 to 100)
-    #[structopt(short, long)]
+    #[structopt(short, long, default_value = "100")]
     volume: u8,
 }
 
