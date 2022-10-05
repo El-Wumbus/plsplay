@@ -36,18 +36,17 @@ fn main()
                 let audio = Sink::try_new(&handle).expect("Error creating sink");
                 audio.append(decoder);
                 audio_controls(audio, volume, file);
+                return
             }
             _ => (),
         },
-        _ =>
-        {
-            let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
+        _ => (),
+    }
+    let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
             let audio = stream_handle
                 .play_once(BufReader::new(file_handle))
                 .unwrap();
             audio_controls(audio, volume, file);
-        }
-    }
 }
 
 fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf)

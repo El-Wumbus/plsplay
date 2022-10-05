@@ -6,9 +6,9 @@ default: build
 build:
 	cargo build
 
-build-release:
+install:
 	cargo build --release
-	install target/release/$(BIN) $(INSTALL_LOCATION)/$(BIN)
+	sudo install target/release/$(BIN) $(INSTALL_LOCATION)/$(BIN)
 
 clean:
 	rm -rf ./target/*
