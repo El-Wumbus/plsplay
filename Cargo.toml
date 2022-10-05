@@ -10,3 +10,5 @@ rodio = {version = "0.15.0"}
 structopt = "0.3.26"
 cursive = "0.20.0"
 redlux ="0.5.0"
+lofty = "*"
+souvlaki = "*"

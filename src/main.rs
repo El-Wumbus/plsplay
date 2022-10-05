@@ -7,6 +7,8 @@ use std::{
     process::exit,
 };
 use structopt::StructOpt;
+mod metadata;
+use metadata::*;
 mod select;
 
 const MAX_VOLUME: u32 = 200;
@@ -14,14 +16,14 @@ const PRECENTAGE_CONVERSION: f32 = 100.0;
 
 fn main()
 {
-    let (_file, volume) = parse_args(Opt::from_args());
+    let (_file, volume, disable_terminal_controls) = parse_args(Opt::from_args());
     let file = select::get_file(_file);
 
     let file_handle = File::open(file.clone())
         .expect(format!("Couldn't open file {}", file.to_string_lossy()).as_str());
-
+    
     // Do diffferent things for m4a files.
-    match file.extension()
+    match file.extension() // TODO: detect file type from file content https://lib.rs/crates/lofty
     {
         Some(x) => match x.to_str().unwrap()
         {
@@ -35,7 +37,7 @@ fn main()
                 let (_stream, handle) = output_stream.expect("Error creating output stream");
                 let audio = Sink::try_new(&handle).expect("Error creating sink");
                 audio.append(decoder);
-                audio_controls(audio, volume, file);
+                audio_controls(audio, volume, file, disable_terminal_controls);
                 return
             }
             _ => (),
@@ -46,11 +48,12 @@ fn main()
             let audio = stream_handle
                 .play_once(BufReader::new(file_handle))
                 .unwrap();
-            audio_controls(audio, volume, file);
+            audio_controls(audio, volume, file, disable_terminal_controls);
 }
 
-fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf)
+fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: bool)
 {
+
     println!(
         "Playing '{}' at {}% volume",
         file.to_string_lossy(),
@@ -59,19 +62,34 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf)
     sink.set_volume(volume);
     sink.play();
 
+    // TODO: parse metadata 
+    let metadata:parse::AudioMetadata = parse::AudioMetadata::from_file(file.clone());
+
+    // let mut controls = handle::handle_controls(metadata);
+    // controls
+    //     .attach(|event: MediaControlEvent| match event
+    //     {
+    //         MediaControlEvent::Pause => sink.pause(),
+    //         MediaControlEvent::Play => sink.play(),
+    //         MediaControlEvent::Quit => sink.stop(),
+    //         _ => (),
+    //     })
+    //     .unwrap();
+
     loop
     {
         if sink.empty()
         {
             break;
         }
+        if no_term_controls
+        {
+            continue;
+        }
+
         print!(
             "{}:: ",
-            match file.file_stem()
-            {
-                Some(x) => format!("{} ", x.to_string_lossy()),
-                _ => "".to_string(),
-            }
+            metadata.title
         );
         stdout().flush().unwrap();
         let mut input: String = String::new();
@@ -95,7 +113,8 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf)
                 println!("\thelp                         [display help message]");
                 println!("\texit   | quit                [Close the program]");
                 println!("\tvolume | vol <target volume> [View or adjust volume]");
-            }
+            },
+
             "volume" | "vol" =>
             {
                 if input.len() > 1
@@ -119,7 +138,7 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf)
                 {
                     println!("Volume: {}%", volume * PRECENTAGE_CONVERSION)
                 }
-            }
+            },
             _ => continue,
         }
     }
@@ -136,15 +155,21 @@ struct Opt
     /// The playback volume (from 0 to 200)
     #[structopt(short, long, default_value = "100")]
     volume: u32,
+
+    /// Disable interactive command line controls
+    #[structopt(short,long)]
+    disable_terminal_controls: bool,
 }
 
-fn parse_args(opt: Opt) -> (PathBuf, f32)
+fn parse_args(opt: Opt) -> (PathBuf, f32, bool)
 {
     let file = opt.file;
     let mut volume = opt.volume;
-    if volume > MAX_VOLUME
+    if volume > MAX_VOLUME as u32
     {
         volume = MAX_VOLUME;
     }
-    return (file, ((volume / PRECENTAGE_CONVERSION as u32) as f32));
+    return (file, ((volume / PRECENTAGE_CONVERSION as u32) as f32), opt.disable_terminal_controls);
 }
+
+// Todo: Parse metadata
