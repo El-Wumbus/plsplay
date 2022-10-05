@@ -1,68 +1,129 @@
+use redlux;
+use rodio::{OutputStream, Sink};
 use std::{
-    fs::{File, ReadDir},
-    io::BufReader,
+    fs::File,
+    io::{stdin, stdout, BufReader, Write},
     path::PathBuf,
+    process::exit,
 };
 use structopt::StructOpt;
 mod select;
 
-// fn select_from_dir()
-
-fn dir_to_filename_list(dir: ReadDir) -> Vec<PathBuf>
-{
-    dir.map(|entry| {
-        let entry_path = entry.unwrap().path();
-        let file_name = entry_path.file_name().unwrap();
-        let file_name_pathbuf = PathBuf::from(file_name);
-        file_name_pathbuf
-    })
-    .collect::<Vec<PathBuf>>()
-}
-
-fn get_file(file: PathBuf) -> PathBuf
-{
-    let mut file = file.clone();
-    if file.is_dir()
-    {
-        loop
-        {
-            file = file.join(select::select_from_dir(dir_to_filename_list(
-                file.read_dir().expect(
-                    format!("Error: cannot read from dir '{}'", file.to_string_lossy()).as_str(),
-                ),
-            )));
-
-            if file.is_file()
-            {
-                break;
-            }
-        }
-    }
-    return file;
-}
+const MAX_VOLUME: u32 = 200;
+const PRECENTAGE_CONVERSION: f32 = 100.0;
 
 fn main()
 {
-    let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
     let (_file, volume) = parse_args(Opt::from_args());
-    let file = get_file(_file);
+    let file = select::get_file(_file);
 
     let file_handle = File::open(file.clone())
         .expect(format!("Couldn't open file {}", file.to_string_lossy()).as_str());
 
-    let audio = stream_handle
-        .play_once(BufReader::new(file_handle))
-        .unwrap();
-    audio.set_volume(volume);
-    drop(volume);
+    // Do diffferent things for m4a files.
+    match file.extension()
+    {
+        Some(x) => match x.to_str().unwrap()
+        {
+            "m4a" =>
+            {
+                let metadata = file_handle.metadata().expect("Error getting file metadata");
+                let size = metadata.len();
+                let decoder = redlux::Decoder::new_mpeg4(BufReader::new(file_handle), size)
+                    .expect("Error creating m4a Decoder");
+                let output_stream = OutputStream::try_default();
+                let (_stream, handle) = output_stream.expect("Error creating output stream");
+                let audio = Sink::try_new(&handle).expect("Error creating sink");
+                audio.append(decoder);
+                audio_controls(audio, volume, file);
+            }
+            _ => (),
+        },
+        _ =>
+        {
+            let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
+            let audio = stream_handle
+                .play_once(BufReader::new(file_handle))
+                .unwrap();
+            audio_controls(audio, volume, file);
+        }
+    }
+}
 
-    audio.play();
+fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf)
+{
     println!(
         "Playing '{}' at {}% volume",
         file.to_string_lossy(),
-        (volume * 100.0) as u8
+        (volume * PRECENTAGE_CONVERSION) as u8
     );
-    audio.sleep_until_end();
+    sink.set_volume(volume);
+    sink.play();
+
+    loop
+    {
+        if sink.empty()
+        {
+            break;
+        }
+        print!(
+            "{}:: ",
+            match file.file_stem()
+            {
+                Some(x) => format!("{} ", x.to_string_lossy()),
+                _ => "".to_string(),
+            }
+        );
+        stdout().flush().unwrap();
+        let mut input: String = String::new();
+        stdin().read_line(&mut input).unwrap();
+        let input: Vec<&str> = input.trim().split_whitespace().collect();
+
+        if input.len() < 1
+        {
+            continue;
+        }
+        match input[0]
+        {
+            "exit" | "quit" => exit(0),
+            "pause" | "pa" => sink.pause(),
+            "play" | "pl" => sink.play(),
+            "help" =>
+            {
+                println!("Commands:");
+                println!("\tpause  | pa                  [pause playback]");
+                println!("\tplay   | pl                  [resume playback]");
+                println!("\thelp                         [display help message]");
+                println!("\texit   | quit                [Close the program]");
+                println!("\tvolume | vol <target volume> [View or adjust volume]");
+            }
+            "volume" | "vol" =>
+            {
+                if input.len() > 1
+                {
+                    let mut parsed: u32 = match input[1].parse()
+                    {
+                        Ok(x) => x,
+                        Err(_) => continue,
+                    };
+
+                    if parsed > MAX_VOLUME
+                    {
+                        parsed = MAX_VOLUME;
+                        println!("{}", parsed as f32);
+                    }
+
+                    volume = parsed as f32 / PRECENTAGE_CONVERSION;
+                    sink.set_volume(volume);
+                }
+                else
+                {
+                    println!("Volume: {}%", volume * PRECENTAGE_CONVERSION)
+                }
+            }
+            _ => continue,
+        }
+    }
 }
 
 #[derive(StructOpt, Debug)]
@@ -73,18 +134,18 @@ struct Opt
     #[structopt(parse(from_str))]
     file: PathBuf,
 
-    /// The playback volume (from 0 to 100)
+    /// The playback volume (from 0 to 200)
     #[structopt(short, long, default_value = "100")]
-    volume: u8,
+    volume: u32,
 }
 
 fn parse_args(opt: Opt) -> (PathBuf, f32)
 {
     let file = opt.file;
     let mut volume = opt.volume;
-    if volume > 100
+    if volume > MAX_VOLUME
     {
-        volume = 100;
+        volume = MAX_VOLUME;
     }
-    return (file, ((volume / 100) as f32));
+    return (file, ((volume / PRECENTAGE_CONVERSION as u32) as f32));
 }
