@@ -63,7 +63,6 @@ fn main()
         (volume * 100.0) as u8
     );
     audio.sleep_until_end();
-
 }
 
 #[derive(StructOpt, Debug)]
