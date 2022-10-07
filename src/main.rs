@@ -11,8 +11,9 @@ use std::{
 use structopt::StructOpt;
 mod metadata;
 
-use crate::get::get_metadata;
+use get::get_metadata;
 mod get;
+mod ansi;
 
 const MAX_VOLUME: u32 = 200;
 const PRECENTAGE_CONVERSION: f32 = 100.0;
@@ -114,15 +115,17 @@ macro_rules! change_mode {
 
 fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: bool)
 {
+    let (title, artist, album) = get_metadata(file);
     println!(
-        "Playing '{}' at {}% volume",
-        file.to_string_lossy(),
+        "Playing '{}{}{}' at {}% volume",
+        ansi::Ansi::GRN,
+        title.clone(),
+        ansi::Ansi::COLOR_END,
         (volume * PRECENTAGE_CONVERSION) as u8
     );
     sink.set_volume(volume);
     sink.play();
 
-    let (title, artist, album) = get_metadata(file);
 
     #[cfg(target_os = "linux")]
     let mut controls = {
@@ -205,7 +208,7 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: 
             mode_continue!();
         }
 
-        print!("{} by {}:: ", title, artist);
+        print!("{}{}{}:: ",ansi::Ansi::GRN, title, ansi::Ansi::COLOR_END);
         stdout().flush().unwrap();
         let mut input: String = String::new();
         stdin().read_line(&mut input).unwrap();

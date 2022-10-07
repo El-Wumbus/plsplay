@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{stdin, stdout, BufReader, Write};
 use std::path::PathBuf;
 use std::process::exit;
-// use ansi;
+use super::ansi::Ansi;
 
 pub fn get_file(mut file: PathBuf) -> PathBuf
 {
@@ -75,6 +75,14 @@ fn select_from_dir(mut path_list: Vec<PathBuf>) -> PathBuf
                 track_file: path.parent().unwrap().parent().unwrap_or(&path).to_path_buf(),
             })
         }
+        else if path.is_file() && i == 0
+        {
+            track_list.push(Track {
+                is_dir: true,
+                track_title: "..".to_string(),
+                track_file: path.parent().unwrap().parent().unwrap_or(&path).to_path_buf(),
+            })
+        }
 
         if path.is_file()
             && match path.extension().unwrap().to_str()
@@ -111,7 +119,7 @@ fn select_from_dir(mut path_list: Vec<PathBuf>) -> PathBuf
     // Use a while loop becuase foreach (for) loops cause issues,
     // and this is effectively the same thing anyway.
 
-    println!("Select:");
+    println!("");
 
     let mut i = 0;
     while i < track_list.len()
@@ -119,11 +127,11 @@ fn select_from_dir(mut path_list: Vec<PathBuf>) -> PathBuf
         let track = track_list.get(i).unwrap();
         if track.is_dir
         {
-            println!("[{}] {} (dir)", i, track.track_title);
+            println!("[{}] {}{}{}", i, Ansi::BLU, track.track_title, Ansi::COLOR_END);
         }
         else
         {
-            println!("[{}] {}", i, track.track_title);
+            println!("[{}] {}{}{}", i, Ansi::GRN, track.track_title, Ansi::COLOR_END);
         }
         stdout().flush().expect("Error: Cannot flush stdout");
         i += 1;
