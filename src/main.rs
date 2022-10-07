@@ -1,17 +1,18 @@
-use lofty::{FileType, Probe};
+use lofty::{FileType};
 use redlux;
 use rodio::{OutputStream, Sink};
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
 use std::{
     fs::File,
     io::{stdin, stdout, BufReader, Write},
-    path::PathBuf,
+    path::{PathBuf},
     process::exit,
 };
 use structopt::StructOpt;
 mod metadata;
-use metadata::*;
-mod select;
+
+use crate::get::get_metadata;
+mod get;
 
 const MAX_VOLUME: u32 = 200;
 const PRECENTAGE_CONVERSION: f32 = 100.0;
@@ -43,24 +44,15 @@ fn parse_args(opt: Opt) -> (PathBuf, f32, bool)
         pvolume = MAX_VOLUME;
     }
     let volume = pvolume as f32 / PRECENTAGE_CONVERSION;
-    return (
-        file,
-        volume,
-        opt.disable_terminal_controls,
-    );
+    return (file, volume, opt.disable_terminal_controls);
 }
 
 fn main()
 {
     let (_file, volume, disable_terminal_controls) = parse_args(Opt::from_args());
-    let file = select::get_file(_file);
+    let file = get::get_file(_file);
 
-    let file_handle = File::open(file.clone())
-        .expect(format!("Couldn't open file {}", file.to_string_lossy()).as_str());
-
-    let reader = BufReader::new(file_handle);
-    let file_probe = Probe::new(reader).guess_file_type().unwrap();
-    match file_probe.file_type() // TODO: detect file type from file content https://lib.rs/crates/lofty
+    match get::file_type(file.clone()) // TODO: detect file type from file content https://lib.rs/crates/lofty
         {
             Some(x) => match x
             {
@@ -130,8 +122,7 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: 
     sink.set_volume(volume);
     sink.play();
 
-    let metadata: parse::AudioMetadata = parse::AudioMetadata::from_file(file.clone());
-    let (title, artist, album) = (metadata.title, metadata.artist, metadata.album);
+    let (title, artist, album) = get_metadata(file);
 
     #[cfg(target_os = "linux")]
     let mut controls = {
@@ -143,6 +134,7 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: 
 
         let mut controls =
             MediaControls::new(config).expect("Error: Unable to create media controls");
+
 
         controls
             .attach(move |event: MediaControlEvent| match event
@@ -213,7 +205,7 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: 
             mode_continue!();
         }
 
-        print!("{} by {}:: ", title, artist,);
+        print!("{} by {}:: ", title, artist);
         stdout().flush().unwrap();
         let mut input: String = String::new();
         stdin().read_line(&mut input).unwrap();
