@@ -487,12 +487,15 @@ pub mod tui
                     }
                     KeyCode::Char('-') | KeyCode::Char('_') | KeyCode::PageDown =>
                     {
-                        let mut vol:u32 = ((volume * PRECENTAGE_CONVERSION) as u32 - 10) as u32;
-                        if vol > MAX_VOLUME
+                        if volume != 0.0
                         {
-                            vol = MAX_VOLUME;
+                            let mut vol:u32 = ((volume * PRECENTAGE_CONVERSION) as u32 - 10) as u32;
+                            if vol > MAX_VOLUME
+                            {
+                                vol = MAX_VOLUME;
+                            }
+                            change_mode!(Mode::Volume(vol as f32 / PRECENTAGE_CONVERSION));
                         }
-                        change_mode!(Mode::Volume(vol as f32 / PRECENTAGE_CONVERSION));
                     }
                     KeyCode::Char('p') => match unsafe { PAUSED }
                     {
