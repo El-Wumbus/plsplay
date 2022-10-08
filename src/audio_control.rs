@@ -283,7 +283,7 @@ pub mod tui
         Terminal,
     };
     use crossterm::{
-        event::{self, Event as CEvent, KeyCode},
+        event::{self, Event as CEvent, KeyCode, MouseEvent, MouseButton, KeyEvent},
         terminal::{disable_raw_mode, enable_raw_mode},
     };
 
@@ -475,7 +475,7 @@ pub mod tui
                         terminal.show_cursor().unwrap();
                         change_mode!(Mode::Stop());
                     }
-                    KeyCode::Char('+') | KeyCode::Char('=') =>
+                    KeyCode::Char('+') | KeyCode::Char('=') | KeyCode::PageUp =>
                     {
                         let mut vol = (volume * PRECENTAGE_CONVERSION) as u32 + 10;
                         if vol > MAX_VOLUME
@@ -484,7 +484,7 @@ pub mod tui
                         }
                         change_mode!(Mode::Volume(vol as f32 / PRECENTAGE_CONVERSION));
                     }
-                    KeyCode::Char('-') | KeyCode::Char('_') =>
+                    KeyCode::Char('-') | KeyCode::Char('_') | KeyCode::PageDown =>
                     {
                         let mut vol = (volume * PRECENTAGE_CONVERSION) as u32 - 10;
                         if vol > MAX_VOLUME
