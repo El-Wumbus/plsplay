@@ -17,6 +17,8 @@ pub mod cli
     static mut MODE: Mode = Mode::Play();
     static mut COUNT: f32 = 0.0;
     static mut END: bool = false;
+    static mut PAUSED: bool = true;
+
     enum Mode
     {
         Play(),
@@ -59,15 +61,14 @@ pub mod cli
         let _counter = thread::spawn(|| {
             loop
             {
-                thread::sleep(Duration::from_millis(100));
-
+                
                 unsafe {
-                    match MODE
+                    if !PAUSED
                     {
-                        Mode::Pause() | Mode::Stop() => (),
-                        _ => COUNT += 0.1,
+                        COUNT += 0.1;
                     }
                 }
+                thread::sleep(Duration::from_millis(100));
             }
         });
 
@@ -108,6 +109,11 @@ pub mod cli
             if sink.empty()
             {
                 unsafe { END = true };
+            }
+            match sink.is_paused()
+            {
+                true => unsafe {PAUSED=true},
+                false => unsafe {PAUSED=false},
             }
 
             // Take actions previously selected.
@@ -234,11 +240,9 @@ pub mod cli
                         println!("Volume: {}%", volume * PRECENTAGE_CONVERSION)
                     }
                 }
-                _ =>
-                {
-                    // So any action previously taken isn't repeated, clear MODE.
-                    mode_continue!();
-                }
+                _ => {
+                    unsafe { MODE.clear_actions() };
+                    continue},
             }
         }
     }
