@@ -1,4 +1,4 @@
-use audio_control::cli;
+
 use lofty::FileType;
 use redlux;
 use rodio::{OutputStream, Sink};
@@ -29,9 +29,13 @@ struct Opt
     /// Disable interactive command line controls
     #[structopt(short, long)]
     disable_terminal_controls: bool,
+
+    /// Use TUI instead of CLI
+    #[structopt(short, long)]
+    tui: bool,
 }
 
-fn parse_args(opt: Opt) -> (PathBuf, f32, bool)
+fn parse_args(opt: Opt) -> (PathBuf, f32, bool, bool)
 {
     let file = opt.file;
     let mut pvolume = opt.volume;
@@ -40,14 +44,14 @@ fn parse_args(opt: Opt) -> (PathBuf, f32, bool)
         pvolume = MAX_VOLUME;
     }
     let volume = pvolume as f32 / PRECENTAGE_CONVERSION;
-    return (file, volume, opt.disable_terminal_controls);
+    return (file, volume, opt.disable_terminal_controls, opt.tui);
 }
 
 fn main()
 {
-    let (_file, volume, disable_terminal_controls) = parse_args(Opt::from_args());
+    let (_file, volume, disable_terminal_controls, tui) = parse_args(Opt::from_args());
     let file = get::get_file(_file);
 
-    run::run(file, volume, disable_terminal_controls);
+    run::run(file, volume, disable_terminal_controls, tui);
     return;
 }

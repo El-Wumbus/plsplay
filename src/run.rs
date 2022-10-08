@@ -1,6 +1,6 @@
 use super::*;
 
-pub fn run(file:PathBuf, volume:f32, disable_terminal_controls:bool)
+pub fn run(file:PathBuf, volume:f32, disable_terminal_controls:bool, tui:bool)
 {
     match get::file_type(file.clone()) // TODO: detect file type from file content https://lib.rs/crates/lofty
         {
@@ -18,7 +18,15 @@ pub fn run(file:PathBuf, volume:f32, disable_terminal_controls:bool)
                     let (_stream, stream_handle) = output_stream.expect("Error: Couldn't create MPEG4 output stream");
                     let audio = Sink::try_new(&stream_handle).expect("Error creating sink");
                     audio.append(source);
-                    cli::audio_controls(audio, volume, file, disable_terminal_controls);
+                    if !tui{
+
+                        audio_control::cli::audio_controls(audio, volume, file, disable_terminal_controls);
+                    }
+                    else
+                    {
+                        
+                        audio_control::tui::audio_controls(audio, volume, file);
+                    }
                     return;
                 },
                 _ => (),
@@ -31,5 +39,12 @@ pub fn run(file:PathBuf, volume:f32, disable_terminal_controls:bool)
             format!("Couldn't open file {}", file.to_string_lossy()).as_str(),
         )))
         .unwrap();
-    cli::audio_controls(audio, volume, file, disable_terminal_controls);
-}
+        if !tui{
+
+            audio_control::cli::audio_controls(audio, volume, file, disable_terminal_controls);
+        }
+        else
+        {
+            audio_control::tui::audio_controls(audio, volume, file);
+        }
+    }
