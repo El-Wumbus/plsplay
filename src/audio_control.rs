@@ -482,15 +482,17 @@ pub mod tui
                         {
                             vol = MAX_VOLUME;
                         }
+                
                         change_mode!(Mode::Volume(vol as f32 / PRECENTAGE_CONVERSION));
                     }
                     KeyCode::Char('-') | KeyCode::Char('_') | KeyCode::PageDown =>
                     {
-                        let mut vol = (volume * PRECENTAGE_CONVERSION) as u32 - 10;
+                        let mut vol:u32 = ((volume * PRECENTAGE_CONVERSION) as u32 - 10) as u32;
                         if vol > MAX_VOLUME
                         {
                             vol = MAX_VOLUME;
                         }
+                        if vol < 0
                         change_mode!(Mode::Volume(vol as f32 / PRECENTAGE_CONVERSION));
                     }
                     KeyCode::Char('p') => match unsafe { PAUSED }
