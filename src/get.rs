@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::{stdin, stdout, BufReader, Write};
 use std::path::PathBuf;
 use std::process::exit;
+use std::ffi::OsStr;
 use super::ansi::Ansi;
 
 pub fn get_file(mut file: PathBuf) -> PathBuf
@@ -85,7 +86,7 @@ fn select_from_dir(mut path_list: Vec<PathBuf>) -> PathBuf
         }
 
         if path.is_file()
-            && match path.extension().unwrap().to_str()
+            && match (match path.extension() {Some(x) => x, None => OsStr::new("ERR")}).to_str()
             {
                 Some("mp4") | Some("flac") | Some("m4a") | Some("ogg") | Some("wav")
                 | Some("mp3") => true,
