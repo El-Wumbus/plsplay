@@ -492,7 +492,6 @@ pub mod tui
                         {
                             vol = MAX_VOLUME;
                         }
-                        if vol < 0
                         change_mode!(Mode::Volume(vol as f32 / PRECENTAGE_CONVERSION));
                     }
                     KeyCode::Char('p') => match unsafe { PAUSED }
