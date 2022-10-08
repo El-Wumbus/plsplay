@@ -283,7 +283,7 @@ pub mod tui
         Terminal,
     };
     use crossterm::{
-        event::{self, Event as CEvent, KeyCode, MouseEvent, MouseButton, KeyEvent},
+        event::{self, Event as CEvent, KeyCode},
         terminal::{disable_raw_mode, enable_raw_mode},
     };
 
