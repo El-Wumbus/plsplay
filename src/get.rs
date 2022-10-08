@@ -34,10 +34,10 @@ pub fn file_type(file: PathBuf) -> Option<FileType>
     probe.file_type()
 }
 
-pub fn get_metadata(file: PathBuf) -> (String, String, String)
+pub fn get_metadata(file: PathBuf) -> (String, String, String, f32)
 {
     let metadata: parse::AudioMetadata = parse::AudioMetadata::from_file(file);
-    (metadata.title, metadata.artist, metadata.album)
+    (metadata.title, metadata.artist, metadata.album, metadata.duration)
 }
 
 struct Track

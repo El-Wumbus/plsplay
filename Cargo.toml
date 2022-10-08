@@ -11,6 +11,7 @@ structopt = "0.3.26"
 redlux ={ git = "https://github.com/El-Wumbus/redlux"}
 lofty = "*"
 souvlaki = "*"
+human-repr = "1.0.1"
 
 [dependencies.cursive]
 version = "0.20.0"

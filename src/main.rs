@@ -1,23 +1,28 @@
-use lofty::{FileType};
+use human_repr::{HumanDuration};
+use lofty::FileType;
 use redlux;
 use rodio::{OutputStream, Sink};
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
 use std::{
     fs::File,
     io::{stdin, stdout, BufReader, Write},
-    path::{PathBuf},
+    path::PathBuf,
     process::exit,
+    thread,
+    time::Duration,
 };
 use structopt::StructOpt;
 mod metadata;
 
 use get::get_metadata;
-mod get;
 mod ansi;
+mod get;
 
 const MAX_VOLUME: u32 = 200;
 const PRECENTAGE_CONVERSION: f32 = 100.0;
 static mut MODE: Mode = Mode::Play();
+static mut COUNT: f32 = 0.0;
+static mut END: bool = false;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "plsplay")]
@@ -115,7 +120,7 @@ macro_rules! change_mode {
 
 fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: bool)
 {
-    let (title, artist, album) = get_metadata(file);
+    let (title, artist, album, duration) = get_metadata(file);
     println!(
         "Playing '{}{}{}' at {}% volume",
         ansi::Ansi::GRN,
@@ -125,7 +130,13 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: 
     );
     sink.set_volume(volume);
     sink.play();
-
+    let _counter = thread::spawn(|| {
+        loop
+        {
+            thread::sleep(Duration::from_millis(100));
+            unsafe { COUNT += 0.1 };
+        }
+    });
 
     #[cfg(target_os = "linux")]
     let mut controls = {
@@ -137,7 +148,6 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: 
 
         let mut controls =
             MediaControls::new(config).expect("Error: Unable to create media controls");
-
 
         controls
             .attach(move |event: MediaControlEvent| match event
@@ -162,9 +172,10 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: 
 
     loop
     {
+
         if sink.empty()
         {
-            break;
+            unsafe {END = true};
         }
 
         // Take actions previously selected.
@@ -208,7 +219,29 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: 
             mode_continue!();
         }
 
-        print!("{}{}{}:: ",ansi::Ansi::GRN, title, ansi::Ansi::COLOR_END);
+        if !unsafe{END}
+        {
+            print!(
+                "{}{}{} [{}/{}]:: ",
+                ansi::Ansi::GRN,
+                title,
+                ansi::Ansi::COLOR_END,
+                unsafe { COUNT.human_duration() },
+                duration.human_duration()
+            );
+        }
+        else
+        {
+            print!(
+                "{}{}{} [{}END{}]:: ",
+                ansi::Ansi::GRN,
+                title,
+                ansi::Ansi::COLOR_END,
+                ansi::Ansi::RED,
+                ansi::Ansi::COLOR_END,
+            );
+        }
+        
         stdout().flush().unwrap();
         let mut input: String = String::new();
         stdin().read_line(&mut input).unwrap();
@@ -220,9 +253,18 @@ fn audio_controls(sink: Sink, mut volume: f32, file: PathBuf, no_term_controls: 
         }
         match input[0]
         {
-            "exit" | "quit" | "Stop" => change_mode!(Mode::Stop()),
+            "exit" | "quit" | "Stop" => exit(0),
             "pause" | "pa" => change_mode!(Mode::Pause()),
             "play" | "pl" => change_mode!(Mode::Play()),
+            "remaining" | "rem" =>
+            {
+                let time_remaining = unsafe { duration - COUNT };
+                println!("{}", time_remaining.human_duration());
+            }
+            "duration" | "dur" =>
+            {
+                println!("{}", duration.human_duration());
+            }
             "help" =>
             {
                 println!("Commands:");
