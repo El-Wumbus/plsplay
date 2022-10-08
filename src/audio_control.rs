@@ -60,7 +60,14 @@ pub mod cli
             loop
             {
                 thread::sleep(Duration::from_millis(100));
-                unsafe { COUNT += 0.1 };
+
+                unsafe {
+                    match MODE
+                    {
+                        Mode::Pause() | Mode::Stop() => (),
+                        _ => COUNT += 0.1,
+                    }
+                }
             }
         });
 
