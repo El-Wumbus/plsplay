@@ -111,16 +111,9 @@ pub mod cli
 
         loop
         {
-            if sink.empty()
-            {
-                unsafe { END = true };
-            }
-            match sink.is_paused()
-            {
-                true =>
-                unsafe { PAUSED = true },
-                false =>
-                unsafe { PAUSED = false },
+            unsafe {
+                PAUSED = sink.is_paused();
+                END = sink.empty();
             }
 
             // Take actions previously selected.
@@ -296,7 +289,7 @@ pub mod tui
             loop
             {
                 unsafe {
-                    if !PAUSED || END
+                    if !PAUSED || !END
                     {
                         COUNT += 1.0;
                     }
@@ -305,16 +298,9 @@ pub mod tui
             }
         });
 
-        if sink.empty()
-        {
-            unsafe { END = true };
-        }
-        match sink.is_paused()
-        {
-            true =>
-            unsafe { PAUSED = true },
-            false =>
-            unsafe { PAUSED = false },
+        unsafe {
+            PAUSED = sink.is_paused();
+            END = sink.empty();
         }
 
         #[cfg(target_os = "linux")]
