@@ -22,14 +22,11 @@ Check the github releases and download the executable for your platform. If one 
 4. Compile & Install
 
    ```bash
-    # Linux
-    sudo make install
-
-    # MacOS
-    sudo make install-macOS
+    #COOL PEOPLE
+    ./install.sh
 
     # Windows users
-    install.ps1 # Not working yet, ok?
+    ./install.ps1 # Not working yet, ok?
    ```
 
 > Calm down, it's a joke.
