@@ -4,6 +4,22 @@ A CLI audio file playing utility.
 
 ## How to install
 
+### Download from AUR (Arch Linux)
+
+#### With AUR helper (yay)
+
+```bash
+yay -S plsplay
+```
+
+#### Without AUR helper
+
+```bash
+git clone https://aur.archlinux.org/plsplay.git
+cd plsplay
+makepkg -si
+```
+
 ### Download from releases
 
 Check the github releases and download the executable for your platform. If one isn't present then you must compile from source.

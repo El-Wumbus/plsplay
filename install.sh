@@ -8,13 +8,13 @@ clean() {
 }
 
 if [ "$(uname)" = "darwin" ]; then
-    install_path="${HOME}/.local/bin/"
+    install_path="${PREFIX}${HOME}/.local/bin/" # Install to a user local directory because macos tries to hide it's important directories 
     chmod 755 target/release/plsplay
     mkdir -p "$install_path"
-    cp -vf target/release/plsplay "$install_path" # Install to a user local directory because macos tries to hide it's unix-likeness
+    cp -vf target/release/plsplay "$install_path" 
 
 else
-    install_path="/usr/local/bin/"
+    install_path="${PREFIX}/usr/local/bin/"
     mkdir -p "$install_path"
     sudo install -Dm755 target/release/plsplay "$install_path/plsplay"
 fi
@@ -22,5 +22,5 @@ fi
 clean
 
 if [ "$(echo "$PATH" | grep -i "$install_path" )" = "" ]; then
-    echo "'${HOME}/.local/bin/' isn't in your PATH, add it to use plsplay."
+    echo "'${install_path}' isn't in your PATH, add it to use plsplay."
 fi
