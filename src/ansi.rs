@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 #[allow(non_snake_case)]
 
-pub mod Ansi
+pub struct Ansi;
+
+impl Ansi
 {
     //Regular text
     pub const BLK: &str = "\x1b[30m";
