@@ -4,7 +4,6 @@ use {
     super::{ansi, get::get_metadata, MAX_VOLUME, PRECENTAGE_CONVERSION},
     human_repr::HumanDuration,
     rodio::Sink,
-    souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig},
     std::{
         io::{stdin, stdout, Write},
         path::PathBuf,
@@ -77,38 +76,6 @@ pub mod cli
             }
         });
 
-        #[cfg(target_os = "linux")]
-        let mut controls = {
-            let config = PlatformConfig {
-                dbus_name: "decator_plsplay",
-                display_name: "plsplay",
-                hwnd: None,
-            };
-
-            let mut controls =
-                MediaControls::new(config).expect("Error: Unable to create media controls");
-
-            controls
-                .attach(move |event: MediaControlEvent| match event
-                {
-                    MediaControlEvent::Pause => change_mode!(Mode::Pause()),
-                    MediaControlEvent::Play => change_mode!(Mode::Play()),
-                    MediaControlEvent::Quit => change_mode!(Mode::Stop()),
-                    _ => (),
-                })
-                .unwrap();
-
-            controls
-                .set_metadata(MediaMetadata {
-                    title: Some(&title),
-                    album: Some(&album),
-                    artist: Some(&artist),
-                    ..Default::default()
-                })
-                .unwrap();
-            controls
-        };
-
         loop
         {
             unsafe {
@@ -124,24 +91,16 @@ pub mod cli
                     Mode::Play() =>
                     {
                         sink.play();
-                        #[cfg(target_os = "linux")]
-                        controls
-                            .set_playback(MediaPlayback::Playing { progress: None })
-                            .unwrap();
+        
                     }
                     Mode::Pause() =>
                     {
                         sink.pause();
-                        #[cfg(target_os = "linux")]
-                        controls
-                            .set_playback(MediaPlayback::Paused { progress: None })
-                            .unwrap();
+                        
                     }
                     Mode::Stop() =>
                     {
                         sink.stop();
-                        #[cfg(target_os = "linux")]
-                        controls.set_playback(MediaPlayback::Stopped).unwrap();
                         exit(0);
                     }
                     Mode::Volume(x) =>
@@ -302,39 +261,6 @@ pub mod tui
             PAUSED = sink.is_paused();
             END = sink.empty();
         }
-
-        #[cfg(target_os = "linux")]
-        let mut controls = {
-            let config = PlatformConfig {
-                dbus_name: "decator_plsplay",
-                display_name: "plsplay",
-                hwnd: None,
-            };
-
-            let mut controls =
-                MediaControls::new(config).expect("Error: Unable to create media controls");
-
-            controls
-                .attach(move |event: MediaControlEvent| match event
-                {
-                    MediaControlEvent::Pause => change_mode!(Mode::Pause()),
-                    MediaControlEvent::Play => change_mode!(Mode::Play()),
-                    MediaControlEvent::Quit => change_mode!(Mode::Stop()),
-                    _ => (),
-                })
-                .unwrap();
-
-            controls
-                .set_metadata(MediaMetadata {
-                    title: Some(&title.clone()),
-                    album: Some(&album),
-                    artist: Some(&artist),
-                    ..Default::default()
-                })
-                .unwrap();
-            controls
-        };
-
         enable_raw_mode().expect("Error: can't run in raw mode (Try using the cli instead).");
         let (tx, rx) = mpsc::channel();
         let tick_rate = Duration::from_millis(TICK_RATE);
@@ -364,9 +290,7 @@ pub mod tui
             }
         });
 
-        let stdout = io::stdout();
-        let backend = CrosstermBackend::new(stdout);
-        let mut terminal = Terminal::new(backend).unwrap();
+        let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout())).unwrap();
         terminal.clear().unwrap();
         // let menu_titles = vec!["Main"];
         let active_menu_item = MenuItem::Main;
@@ -394,24 +318,15 @@ pub mod tui
                     Mode::Play() =>
                     {
                         sink.play();
-                        #[cfg(target_os = "linux")]
-                        controls
-                            .set_playback(MediaPlayback::Playing { progress: None })
-                            .unwrap();
+
                     }
                     Mode::Pause() =>
                     {
                         sink.pause();
-                        #[cfg(target_os = "linux")]
-                        controls
-                            .set_playback(MediaPlayback::Paused { progress: None })
-                            .unwrap();
                     }
                     Mode::Stop() =>
                     {
                         sink.stop();
-                        #[cfg(target_os = "linux")]
-                        controls.set_playback(MediaPlayback::Stopped).unwrap();
                         exit(0);
                     }
                     Mode::Volume(x) =>
